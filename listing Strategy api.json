@@ -1,0 +1,557 @@
+{
+  "name": "listing Strategy api",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=http://82.156.170.153:8000/product/{{ $json.asin }}",
+        "options": {}
+      },
+      "id": "6709f07b-a387-4451-8029-551460e7d105",
+      "name": "asin_data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -10064,
+        26336
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://82.156.170.153:8000/compare/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "keyword",
+              "value": "={{ $json.data.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "055849ff-cb95-41eb-bb3f-48fab3e5949f",
+      "name": "compare_data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -9792,
+        26336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "asin_content",
+              "value": "={{ $('asin_data').item.json.data }}",
+              "type": "object"
+            },
+            {
+              "id": "id-2",
+              "name": "compare_data",
+              "value": "={{ $('compare_data').item.json.data }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cb70d484-c5e3-43ad-b85e-0c9839b436ee",
+      "name": "Merge ASIN and Compare Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -9568,
+        26368
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是Amazon产品属性数据专家，专精于产品属性优化和数据完善。\n\n你的核心能力：\n1. 根据产品类别和行业标准，识别缺失的关键属性\n2. 参考竞品数据，发现有价值的属性维度\n3. 利用你的产品知识库，补充行业通用的重要属性\n4. 确保属性数据的准确性、完整性和一致性\n5. 优化现有属性的表达方式，提升Rufus AI的理解和匹配能力\n\n任务目标：\n请分析以下产品属性数据，结合竞品参考和你的专业知识，生成详细的属性优化建议报告。\n\n## 产品信息\nASIN: {{ $json.asin_content.asin }}\n品牌: {{ $json.asin_content.brand }}\n类别: {{ $json.asin_content.categories }}\n标题: {{ $json.asin_content.title }}\n当前属性数量: {{ $json.asin_content.attributes.length }}\n评分: {{ $json.asin_content.rating }} ({{ $json.asin_content.reviewsCount }} reviews)\n价格: {{ $json.asin_content.price.currency }}{{ $json.asin_content.price.value }}\n\n## 现有属性\n{{ $json.asin_content.attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n## 竞品属性对比\n\n### 竞品1: {{ $json.compare_data[0].brand }} (ASIN: {{ $json.compare_data[0].asin }})\n评分: {{ $json.compare_data[0].rating }} | 价格: {{ $json.compare_data[0].price.currency }}{{ $json.compare_data[0].price.value }}\n属性:\n{{ $json.compare_data[0].attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n### 竞品2: {{ $json.compare_data[1].brand }} (ASIN: {{ $json.compare_data[1].asin }})\n评分: {{ $json.compare_data[1].rating }} | 价格: {{ $json.compare_data[1].price.currency }}{{ $json.compare_data[1].price.value }}\n属性:\n{{ $json.compare_data[1].attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n### 竞品3: {{ $json.compare_data[2].brand }} (ASIN: {{ $json.compare_data[2].asin }})\n评分: {{ $json.compare_data[2].rating }} | 价格: {{ $json.compare_data[2].price.currency }}{{ $json.compare_data[2].price.value }}\n属性:\n{{ $json.compare_data[2].attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n### 竞品4: {{ $json.compare_data[3].brand }} (ASIN: {{ $json.compare_data[3].asin }})\n评分: {{ $json.compare_data[3].rating }} | 价格: {{ $json.compare_data[3].price.currency }}{{ $json.compare_data[3].price.value }}\n属性:\n{{ $json.compare_data[3].attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n### 竞品5: {{ $json.compare_data[4].brand }} (ASIN: {{ $json.compare_data[4].asin }})\n评分: {{ $json.compare_data[4].rating }} | 价格: {{ $json.compare_data[4].price.currency }}{{ $json.compare_data[4].price.value }}\n属性:\n{{ $json.compare_data[4].attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n## 产品描述要点\n{{ $json.asin_content.about.map((point, index) => `${index + 1}. ${point}`).join('\\n') }}\n\n## 客户评论洞察（用于数据一致性检查）\n评分分布:\n- 5星: {{ ($json.asin_content.stars['5star'] * 100).toFixed(0) }}%\n- 4星: {{ ($json.asin_content.stars['4star'] * 100).toFixed(0) }}%\n- 3星: {{ ($json.asin_content.stars['3star'] * 100).toFixed(0) }}%\n- 2星: {{ ($json.asin_content.stars['2star'] * 100).toFixed(0) }}%\n- 1星: {{ ($json.asin_content.stars['1star'] * 100).toFixed(0) }}%\n\n负面评论样本（用于识别潜在问题）:\n{{ $json.asin_content.reviews.filter(r => r.ratingScore <= 2).map(r => `- ${r.reviewTitle}: \"${r.reviewDescription.substring(0, 100)}...\"`).join('\\n') }}\n\n## 任务要求\n\n优化策略：\n1. 竞品参考分析：对比竞品属性数据，找出我们缺失但竞品普遍具备的属性\n2. 行业知识补充：基于产品类别和行业标准，主动识别应该添加的通用属性\n3. 产品特性挖掘：从产品标题、描述、评论中提取可转化为结构化属性的信息\n4. 客户需求导向：根据客户评论和常见问题，补充客户关心的属性维度\n\n## 输出格式\n\n重要说明：请根据输入内容的语言（英文/中文/其他语言）生成相同语言的属性建议，保持语言一致性。输出时不要使用markdown格式（不要使用加粗、斜体、列表符号等），只输出以下内容。\n\n优先级分类标准：\n- 高优先级：竞品普遍具备（覆盖率>75%）或标题描述中提到但属性缺失的字段\n- 中优先级：竞品部分具备（覆盖率50-75%）或有助于SEO的字段\n- 低优先级：竞品少数具备（覆盖率<50%）或可选的补充字段\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n高优先级属性\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n来源参考: [整体说明这些高优先级属性的主要来源：竞品参考/行业知识/产品信息提取/客户需求分析]\n\n补充原因: [用一段话整体说明为什么这些高优先级属性需要立即补充，对Rufus AI和客户搜索的价值]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n（继续列出其他高优先级属性）\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n中优先级属性\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n来源参考: [整体说明这些中优先级属性的主要来源：竞品参考/行业知识/产品信息提取/客户需求分析]\n\n补充原因: [用一段话整体说明为什么这些中优先级属性需要补充，对Rufus AI和客户搜索的价值]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n（继续列出其他中优先级属性）\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n低优先级属性（持续优化）\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n来源参考: [整体说明这些低优先级属性的主要来源：竞品参考/行业知识/产品信息提取/客户需求分析]\n\n补充原因: [用一段话整体说明为什么这些低优先级属性可以作为持续优化项，对Rufus AI和客户搜索的价值]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n属性名称: [Amazon标准字段名]\n建议值: [具体填充内容]\n\n（继续列出其他低优先级属性）\n\n请开始生成属性优化建议。\n",
+        "batching": {}
+      },
+      "id": "60db21e7-4374-40ce-bb57-dfc5d6c13320",
+      "name": " attribute 1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -8560,
+        26912
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是Amazon产品优化报告专家，负责将多个优化分析报告整合为一份专业的、适合邮件发送的综合优化建议报告。\n\n## 输入内容\n\n以下是四个优化报告的内容，请仔细阅读并整合：\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n标题优化报告+产品描述优化报告（About/Bullet Points）+FAQ优化报告+产品属性优化报告\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n{{$json.text}}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## 任务目标\n\n将上述四个报告整合为一份结构清晰、重点突出、易于阅读的邮件格式报告，适合直接发送给客户。\n\n## 输出格式\n\n重要说明：请根据输入报告的语言（英文/中文/其他语言）生成相同语言的综合报告。输出时不要使用markdown格式（不要使用加粗、斜体、列表符号等），使用纯文本格式，便于邮件发送。\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nAmazon产品优化建议报告\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n本报告基于Amazon Rufus AI语义搜索标准，为您的产品listing提供全面优化建议，旨在提升产品可见度、转化率和客户满意度。\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n一、执行摘要\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n[简明扼要地总结四个方面的优化重点，每个方面1-2句话]\n\n标题优化重点: [总结标题优化的核心改进]\n\n产品描述优化重点: [总结About优化的核心改进]\n\nFAQ优化重点: [总结FAQ优化的核心改进]\n\n属性补充重点: [总结属性优化的核心改进]\n\n预期效果: [整体预期的改进效果]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n二、标题优化建议\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n当前标题:\n[显示原标题]\n\n推荐版本A（突出核心差异化）:\n[显示版本A标题]\n\n优化说明: [简化版本A的优化亮点，1段话]\n\n推荐版本B（突出应用场景）:\n[显示版本B标题]\n\n优化说明: [简化版本B的优化亮点，1段话]\n\n后台搜索词建议:\n[显示后台搜索词]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n三、产品描述优化建议（5个Bullet Points）\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n[逐个列出5个bullet points的优化建议，每个包含：]\n\nBullet Point 1 - [主题]:\n原内容: [原文]\n优化后: [优化后的内容]\n改进说明: [简化的改进说明]\n\n[分隔线]\n\nBullet Point 2 - [主题]:\n[同上格式]\n\n[依此类推，共5个]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n四、FAQ优化建议\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n现有FAQ优化（共[X]个）:\n\n[逐个列出FAQ优化，每个包含：]\n\nFAQ 1:\n原问题: [原Q]\n原答案: [原A]\n\n优化问题: [优化后Q]\n优化答案: [优化后A]\n\n改进原因: [简化的改进原因]\n\n[分隔线]\n\n[依此类推]\n\n[分隔线]\n\n额外参考FAQ（共3个）:\n\n参考FAQ 1:\n问题: [Q]\n答案: [A]\n推荐原因: [原因]\n\n[分隔线]\n\n参考FAQ 2:\n[同上格式]\n\n参考FAQ 3:\n[同上格式]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n五、产品属性补充建议\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n高优先级属性（建议立即添加）:\n\n补充说明: [整体补充原因]\n\n[逐个列出高优先级属性]\n属性名: [属性名称]\n建议值: [建议值]\n\n[依此类推]\n\n[分隔线]\n\n中优先级属性（建议本周内添加）:\n\n补充说明: [整体补充原因]\n\n[逐个列出中优先级属性]\n属性名: [属性名称]\n建议值: [建议值]\n\n[依此类推]\n\n[分隔线]\n\n低优先级属性（可持续优化）:\n\n补充说明: [整体补充原因]\n\n[逐个列出低优先级属性]\n属性名: [属性名称]\n建议值: [建议值]\n\n[依此类推]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n七、注意事项\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n1. 所有优化建议均基于Amazon Rufus AI语义搜索标准制定\n2. 请确保所有填充的信息与产品实际特性一致\n3. 建议进行A/B测试比较不同标题版本的效果\n4. 定期根据客户评论和搜索数据调整FAQ和描述\n5. 所有属性填充需符合Amazon平台规范\n\n如有任何疑问或需要进一步说明，请随时联系。\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## 整合要求\n\n1. 内容完整性: 确保四个报告的关键信息都被包含\n2. 逻辑连贯性: 按照优先级和实施顺序组织内容\n3. 可读性: 使用清晰的分隔线和结构，便于快速浏览\n4. 可操作性: 提供明确的实施步骤和优先级\n5. 专业性: 保持专业的语气和准确的术语\n6. 简洁性: 避免冗余信息，突出核心优化点\n\n请基于上述四个输入报告生成一份完整的邮件格式综合优化报告。\n",
+        "batching": {}
+      },
+      "id": "e56b9343-1318-4473-9bd0-aabe50230ac0",
+      "name": "Generate Final Report1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -7760,
+        26416
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=# System Prompt: Professional HTML Report Generator\n\nYou are an AI agent that transforms reports into professional, email-ready HTML documents. Output must be complete and require no revisions.\n\n## Core Rules\n\n1. **NEVER ask follow-up questions** - work with provided information\n2. **Output only complete HTML** - all CSS inline in `<style>` tags\n3. **Email-compatible** - no external dependencies, simple CSS only\n4. **Self-contained** - ready to copy/paste into email and send\n\n## Required HTML Structure\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>[Report Title]</title>\n    <style>\n        /* Inline CSS here */\n    </style>\n</head>\n<body>\n    <header>\n        <h1>[Report Title]</h1>\n        <p>[Date and subtitle]</p>\n    </header>\n    \n    <section>\n        <h2>[Section Title]</h2>\n        <!-- Content -->\n    </section>\n    \n    <footer>\n        <p>Generated: [Date] | [Source]</p>\n    </footer>\n</body>\n</html>\nStandard CSS (Always Include Inline)\ncss* { margin: 0; padding: 0; box-sizing: border-box; }\nbody { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background: #fff; max-width: 900px; margin: 0 auto; padding: 40px 20px; }\nheader { border-bottom: 3px solid #2c5282; padding-bottom: 20px; margin-bottom: 30px; }\nh1 { color: #1a365d; font-size: 2.2em; margin-bottom: 10px; }\nh2 { color: #2c5282; font-size: 1.6em; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }\nh3 { color: #2d3748; font-size: 1.2em; margin-top: 20px; margin-bottom: 10px; }\np { margin-bottom: 15px; }\nsection { margin-bottom: 35px; }\ntable { width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\nthead { background-color: #2c5282; color: white; }\nth, td { padding: 12px 15px; text-align: left; border: 1px solid #e2e8f0; }\nth { font-weight: 600; text-transform: uppercase; font-size: 0.9em; }\ntbody tr:nth-child(even) { background-color: #f7fafc; }\ntbody tr:hover { background-color: #edf2f7; }\nul, ol { margin: 15px 0 15px 25px; }\nli { margin-bottom: 8px; }\nfooter { margin-top: 50px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #718096; font-size: 0.9em; }\n.highlight { background-color: #ebf8ff; border-left: 4px solid #3182ce; padding: 15px; margin: 20px 0; }\n@media (max-width: 768px) { body { padding: 20px 10px; } h1 { font-size: 1.8em; } table { font-size: 0.9em; } }\nContent Organization\nHeader: Title (h1), date/subtitle (p)\nBody Sections:\n\nKey metrics/executive summary (use tables or .highlight boxes)\nMain findings (h2 headings, lists for clarity)\nDetailed analysis (h3 subsections)\nData tables (always use thead/tbody)\n\nFooter: Generation date, source/author\nFormatting Rules\n\nUse semantic HTML: <header>, <section>, <footer>\nProper heading hierarchy: h1 → h2 → h3\nTables: clear headers, alternating row colors, numbers right-aligned\nLists: concise bullets (1-2 lines each)\nWhite space: generous spacing between sections\n\nEmail Compatibility\n\nInline CSS only (no external stylesheets)\nWeb-safe fonts (Arial, Segoe UI, Verdana)\nSimple CSS (avoid flexbox, grid, complex selectors)\nMax-width: 900px on body\nUse hex colors only\n\nOutput Format\nProvide ONLY the complete HTML document. No explanations, no markdown code blocks, no commentary. Start with <!DOCTYPE html> and end with </html>. Document must be immediately usable in email."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -7408,
+        26416
+      ],
+      "id": "f55101b7-02ce-44da-9ecc-4185a91c70fe",
+      "name": "Style Agent1"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4.5",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -7344,
+        26640
+      ],
+      "id": "32fc3d26-18eb-4e8c-8fdd-c288831a40b8",
+      "name": "Sonnet 4.",
+      "credentials": {
+        "openRouterApi": {
+          "id": "hojr05Q9p2Oter8M",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -8208,
+        26384
+      ],
+      "id": "c0c38ef3-db73-4683-8cf9-8aff877ed51c",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ `你是Amazon Rufus AI优化专家。请分析产品信息并生成FAQ优化建议，确保能被Rufus有效索引和引用。\n\n## 当前FAQ (${$json.asin_content.faq ? $json.asin_content.faq.length : 0} 个)\n${$json.asin_content.faq && $json.asin_content.faq.length > 0 ? $json.asin_content.faq.map((item, index) => `\\n### FAQ #${index + 1}\\n**Q:** ${item.question}\\n**A:** ${item.answer}\\n(答案字符数: ${item.answer.length})`).join('\\n') : '\\n⚠️ 当前产品暂无FAQ数据，将根据产品信息、评论和核心特性生成参考FAQ建议。'}\n\n## 产品信息\n- ASIN: ${$json.asin_content.asin}\n- 品牌: ${$json.asin_content.brand}\n- 标题: ${$json.asin_content.title}\n- 评分: ${$json.asin_content.rating} (${$json.asin_content.reviewsCount} reviews)\n\n## 产品核心特性\n${$json.asin_content.about.map((point, index) => `${index + 1}. ${point.split(':')[0]}`).join('\\n')}\n\n## 产品负面评论主题（需要预先回应）\n\n### 评分分布\n- 5星: ${($json.asin_content.stars['5star'] * 100).toFixed(0)}%\n- 4星: ${($json.asin_content.stars['4star'] * 100).toFixed(0)}%\n- 3星: ${($json.asin_content.stars['3star'] * 100).toFixed(0)}%\n- 2星: ${($json.asin_content.stars['2star'] * 100).toFixed(0)}%\n- 1星: ${($json.asin_content.stars['1star'] * 100).toFixed(0)}%\n\n### 负面评论详情\n${$json.asin_content.reviews.filter(r => r.ratingScore <= 2).map((r, index) => `\\n${index + 1}. ${r.reviewTitle} (${r.ratingScore}星, ${r.date})\\n   \"${r.reviewDescription.substring(0, 150)}...\"`).join('\\n')}\n\n### 正面评论亮点（可作为FAQ答案素材）\n${$json.asin_content.reviews.filter(r => r.ratingScore >= 5).slice(0, 5).map((r, index) => `${index + 1}. ${r.reviewTitle}: \"${r.reviewDescription.substring(0, 100)}...\"`).join('\\n')}\n\n## Rufus AI如何使用FAQ\n\n**工作原理：**\n1. 客户用自然语言向Rufus提问关于产品的具体问题\n2. Rufus扫描产品的Q&A section进行向量搜索\n3. 找到语义匹配的FAQ并提取相关答案片段\n4. 生成自然语言回复给客户\n\n**优化关键：**\n- FAQ问题措辞要匹配客户的自然语言查询习惯\n- 答案要包含可直接提取的技术性片段和具体数据\n- 必须预先回答负面reviews中暴露的问题和客户疑虑\n\n## 优化任务\n\n${$json.asin_content.faq && $json.asin_content.faq.length > 0 ? `### 任务1: 现有FAQ优化（${$json.asin_content.faq.length} 个）\n\n对每个现有FAQ，提供：\n1. **问题重写** - 更匹配自然语言查询\n2. **答案增强** - 添加技术细节、量化指标、使用场景\n3. **Rufus引用模拟** - AI会如何引用这段内容\n\n### 任务2: 参考FAQ生成（3个）` : `### 任务: 参考FAQ生成（3个）`}\n\n基于产品信息、评论分析和核心特性，生成高质量的参考FAQ\n\n\n\n## FAQ编写规范\n\n### 1. 问题格式\n- 使用第一人称: \"Can I...\", \"Will my...\", \"How do I...\"\n- 或场景化: \"What happens if...\", \"Is it safe to...\"\n- 长度: 8-15个词\n- 包含具体场景或担忧（根据产品实际使用场景和客户关注点）\n\n### 2. 答案格式（250个字符）\n\\`\\`\\`\n[直接回答] (第一句，简明扼要)\n\n[技术解释] (核心部分)\n- 使用技术术语\n- 提供量化指标\n- 说明工作原理\n\n[具体建议/注意事项]\n- 提供操作步骤\n- 列出适用条件\n- 相关使用建议\n\\`\\`\\`\n\n### 3. 语义关键词植入\n每个FAQ答案必须根据产品特性自然包含以下类别的词汇：\n\n**材质技术类:**\n从产品标题、描述、核心特性中提取材质相关术语（如材料名称、工艺、涂层、成分等）\n\n**性能指标类:**\n从产品特性中提取量化指标和性能描述（如防水等级、耐用性、精度、尺寸规格等）\n\n**应用场景类:**\n根据产品用途列举具体使用场景和目标用户群体\n\n**技术流程类:**\n如果产品涉及制作或使用流程，提取相关技术术语\n\n注意：关键词必须来自实际产品信息，确保准确性和相关性，不要使用不相关的词汇。\n\n### 4. Rufus可引用性测试\n答案的前2句必须能独立回答问题（供Rufus提取）。\n\n✓ 好的示例：\n直接回答+具体数据：\"Yes, this product is safe for [specific use]. The [technical feature] can withstand [specific condition/metric]...\"\n\n❌ 差的示例：\n模糊回答：\"It depends on several factors. Generally speaking, if you follow the instructions properly, you should be fine...\"\n\n### 5. 数据一致性检查\n- 答案必须与产品标题、描述、属性一致\n- 引用的数字、规格必须准确\n- 不要承诺无法兑现的性能\n\n## 输出格式\n\n重要说明：请根据输入内容的语言（英文/中文/其他语言）生成相同语言的优化内容，保持语言一致性。输出时不要使用markdown格式（不要使用加粗、斜体、列表符号等）。\n\n${$json.asin_content.faq && $json.asin_content.faq.length > 0 ? `Part 1: 现有FAQ优化\n\n对于每个现有FAQ，按以下格式输出：\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nFAQ #[X] 优化\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n原QA:\nQ: [原问题]\nA: [原答案]\n\n优化后QA:\nQ: [优化后的问题]\nA: [优化后的答案，250个字符]\n\n改进原因:\n[用简短的文字描述主要改进点，突出关键优化内容]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nPart 2: 额外参考FAQ（提供3个示例）` : `参考FAQ生成（提供3个示例）`}\n\n基于产品特性和客户关注点，提供3个高质量的参考FAQ：\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n参考FAQ #1\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n参考QA:\nQ: [问题]\nA: [答案，250个字符]\n\n推荐原因:\n[用简短的文字描述为什么推荐这个FAQ，说明其价值和作用]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n参考FAQ #2\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n参考QA:\nQ: [问题]\nA: [答案，250个字符]\n\n推荐原因:\n[用简短的文字描述为什么推荐这个FAQ，说明其价值和作用]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n参考FAQ #3\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n参考QA:\nQ: [问题]\nA: [答案，250个字符]\n\n推荐原因:\n[用简短的文字描述为什么推荐这个FAQ，说明其价值和作用]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nPart 3: 优化总结\n\n优化统计:\n现有FAQ数量: ${$json.asin_content.faq ? $json.asin_content.faq.length : 0} 个\n${$json.asin_content.faq && $json.asin_content.faq.length > 0 ? `优化后FAQ数量: ${$json.asin_content.faq.length} 个\n额外参考FAQ: 3 个` : `生成参考FAQ: 3 个`}\n\n预期改进效果:\nRufus AI匹配准确度提升、客户问题覆盖更全面、负面评论预防性回应加强\n\n${$json.asin_content.faq && $json.asin_content.faq.length > 0 ? `请开始生成完整的FAQ优化方案（现有FAQ优化 + 3个额外参考FAQ）。` : `请开始根据产品信息生成3个高质量的参考FAQ。`}` }}",
+        "batching": {}
+      },
+      "id": "e5ca18bb-3e81-4ae2-bf52-3494e36ed0f2",
+      "name": "A+Content Strategy1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -8560,
+        25712
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.asin_content.about && $json.asin_content.about.length > 0 ? `你是Amazon Rufus AI优化专家。请将以下产品描述重写为RAG就绪的、可被AI直接引用的格式。\n\n## 原About/Bullet Points\n${$json.asin_content.about.map((point, index) => `\\n### 原Bullet ${index + 1}\\n${point}\\n(${point.length} 字符)`).join('\\n')}\n\n## 产品技术规格\n- ASIN: ${$json.asin_content.asin}\n- 品牌: ${$json.asin_content.brand}\n- 类别: ${$json.asin_content.categories}\n- 标题: ${$json.asin_content.title}\n- 评分: ${$json.asin_content.rating} (${$json.asin_content.reviewsCount} reviews)\n\n关键属性:\n${$json.asin_content.attributes.map(attr => `- ${attr.key}: ${attr.value}`).join('\\n')}\n\n## 客户���见问题（从reviews）\n\n### 从负面评论中识别的痛点:\n${$json.asin_content.reviews.filter(r => r.ratingScore <= 2).map(r => `- 问题: \"${r.reviewTitle}\" - ${r.reviewDescription.substring(0, 80)}...`).join('\\n')}\n\n### 从正面评论中识别的优势:\n${$json.asin_content.reviews.filter(r => r.ratingScore >= 5).slice(0, 5).map(r => `- 优点: \"${r.reviewTitle}\" - ${r.reviewDescription.substring(0, 80)}...`).join('\\n')}\n\n\n\n## 优化要求\n\n### 1. RAG就绪格式（Retrieval-Augmented Generation）\n\n**什么是RAG就绪？**\nRufus使用检索增强生成技术。当客户提问时：\n1. Rufus扫描你的listing，寻找\"可直接引用\"的文本片段\n2. 提取相关片段\n3. 生成自然语言回答，引用你的bullet内容\n\n**格式要求：**\n每个bullet必须包含：\n\\`\\`\\`\n[特性标题]（加粗，3-6个词）for [具体用途]: [技术解释] + [量化指标] + [应用场景] + [客户利益]\n\\`\\`\\`\n\n示例对比思路：\n- ❌ 旧式泛化描述: \"DURABLE: Made of high quality material, very strong\"\n- ✓ RAG就绪具体描述: \"[明确用途场景]: Constructed from [具体材质和工艺], designed to [量化性能指标]. The [技术特征] ensures [具体性能承诺] for [时间周期].\"\n\n### 2. 5个Bullet Points的内容分配策略\n\n根据产品特性，合理分配5个bullet points，建议覆盖以下维度：\n\n**内容维度选择（根据产品类型选择最相关的5个）：**\n\n1. **核心功能/主要用途**\n   - 产品的核心功能是什么\n   - 解决什么问题或满足什么需求\n   - 适用场景和使用对象\n   - 关键技术参数或规格\n\n2. **材质/性能特性**\n   - 材料构成和技术细节\n   - 性能指标（耐用性、防水性、抗腐蚀等）\n   - 量化数据（使用寿命、承重、温度范围等）\n   - 测试标准或认证\n\n3. **质量/工艺标准**\n   - 制造工艺和技术\n   - 质量控制流程\n   - 精度或准确度指标\n   - 行业标准或认证\n\n4. **使用方式/兼容性**\n   - 安装或使用方法\n   - 兼容的设备或材质\n   - 操作便利性说明\n   - 维护保养要求\n\n5. **服务/保障**\n   - 质保承诺\n   - 售后服务\n   - 客户支持\n   - 退换货政策\n\n**分配原则：**\n- 根据产品标题、描述和竞品分析确定最重要的5个维度\n- 每个bullet应回答客户关心的3-5个具体问题\n- 优先选择能体现差异化优势的维度\n- 确保覆盖负面评论中提到的问题\n\n### 3. 语义密度增强\n\n使用技术性词汇代替泛化形容词的原则：\n\n**转化策略：**\n- 泛化形容词 → 具体技术术语 + 量化指标 + 性能标准\n- \"High quality\" → [具体材质/工艺] + [量化参数] + [测试标准]\n- \"Durable\" → [使用寿命数据] + [环境条件] + [测试证明]\n- \"Easy to use\" → [具体操作步骤] + [时间要求] + [使用场景]\n\n**示例思路：**\n- 将\"Strong\"改为具体的强度数据和材质说明\n- 将\"Waterproof\"改为防水等级和测试条件\n- 将\"Bright colors\"改为色彩技术和准确度说明\n\n### 4. 客户问题预判\n\n每个bullet应预先回答客户的核心疑问：\n\n**问题来源分析：**\n1. 从产品标题中提取的承诺 → 需要在bullet中详细解释\n2. 从竞品对比中发现的差异点 → 需要在bullet中强调优势\n3. 从负面评论中发现的疑虑 → 需要在bullet中预先回应\n4. 从产品类别常见问题中总结 → 需要在bullet中主动说明\n\n**问题类型：**\n- 功能性问题：这个产品能做什么？适用于什么场景？\n- 性能问题：能用多久？在什么条件下工作？\n- 兼容性问题：适合什么设备/材质/环境？\n- 操作问题：如何使用？需要注意什么？\n- 保障问题：质量如何？有什么售后服务？\n\n### 5. 解决当前负面反馈\n\n**必须在bullet中预先回应的问题：**\n基于负面reviews，识别关键投诉主题并在相应bullet中主动回应。\n\n当前负面主题识别：\n${$json.asin_content.reviews.filter(r => r.ratingScore <= 2).length > 0 ? '- ' + $json.asin_content.reviews.filter(r => r.ratingScore <= 2).map(r => r.reviewTitle).join('\\n- ') : '暂无明显负面主题'}\n\n**回应策略原则：**\n- 识别负面评论中的关键词和主题\n- 在相关bullet中主动解释或说明\n- 提供具体的使用建议或注意事项\n- 强调产品改进或质量控制措施\n\n### 6. 竞品优势学习\n\n**从竞品中学习的优秀描述策略：**\n- 分析竞品的技术性词汇使用\n- 识别他们如何量化性能指标\n- 学习他们的场景具体化方式\n\n### 7. 格式规范\n\n- 长度: 每个bullet 80-120词（约600-800字符）\n- 结构: 特性标题 + 第一句总结 + 技术解释 + 具体应用 + 客户利益\n- 首句规则: 前40字符必须包含核心卖点（移动端折叠预览）\n- 可读性: 使用短句，避免过多的从句嵌套\n- 术语: 第一次出现的技术术语可以简单解释\n\n### 8. Rufus引用测试\n\n每个bullet的前2句必须能独立回答问题（供Rufus提取）。\n\n原则：\n- 直接回答+具体数据：\"Yes, this product [具体特性]. The [技术特征] [量化指标]...\"\n- 避免模糊回答：\"It depends on several factors. Generally speaking, if you follow the instructions properly...\"\n\n## 输出格式\n\n重要说明：请根据输入内容的语言（英文/中文/其他语言）生成相同语言的优化内容，保持语言一致性。输出时不要使用markdown格式（不要使用加粗、斜体、列表符号等），只输出以下内容。\n\n对于每个Bullet Point（共5个），按以下格式输出：\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nBullet #[1-5] 优化 - [主题名称]\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n原内容:\n[显示原bullet内容]\n\n优化后内容:\n[完整的优化后内容，80-120词]\n\n改进说明:\n[用一段话说明主要改进点，包括如何增强语义密度、回答了哪些客户问题、提升了哪些Rufus AI匹配度]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n（按此格式继续输出其余4个bullet points）\n\n请开始生成5个优化后的Bullet Points。` : '产品描述分析跳过:产品暂无描述数据' }}",
+        "batching": {}
+      },
+      "id": "6049d9a0-b97e-440a-a770-6b94943dc2a8",
+      "name": "Bullet Points1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -8560,
+        26112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是Amazon Rufus AI优化专家。请优化以下产品标题，使其符合2026年语义搜索标准。\n\n## 原标题\n{{ $json.asin_content.title }}\n(字符数: {{ $json.asin_content.title.length }})\n\n## 产品核心信息\n- ASIN: {{ $json.asin_content.asin }}\n- 品牌: {{ $json.asin_content.brand }}\n- 类别: {{ $json.asin_content.categories }}\n- 价格: {{ $json.asin_content.price.currency }}{{ $json.asin_content.price.value }}\n- 评分: {{ $json.asin_content.rating }} ({{ $json.asin_content.reviewsCount }} reviews)\n\n## 核心特性（从描述中提取）\n{{ $json.asin_content.about.map((point, index) => `${index + 1}. ${point.split(':')[0]}`).join('\\n') }}\n\n## 属性中的关键信息\n{{ $json.asin_content.attributes.filter(attr => ['Size', 'Color', 'Material Type', 'Shape', 'Special Feature'].includes(attr.key)).map(attr => `- ${attr.key}: ${attr.value}`).join('\\n') }}\n\n## 竞品标题参考\n\n### 竞品1: {{ $json.compare_data.compare_0.brand }} (评分: {{ $json.compare_data.compare_0.rating }})\n{{ $json.compare_data.compare_0.title }}\n({{ $json.compare_data.compare_0.title.length }} 字符)\n\n### 竞品2: {{ $json.compare_data.compare_1.brand }} (评分: {{ $json.compare_data.compare_1.rating }})\n{{ $json.compare_data.compare_1.title }}\n({{ $json.compare_data.compare_1.title.length }} 字符)\n\n### 竞品3: {{ $json.compare_data.compare_2.brand }} (评分: {{ $json.compare_data.compare_2.rating }})\n{{ $json.compare_data.compare_2.title }}\n({{ $json.compare_data.compare_2.title.length }} 字符)\n\n## 客户评论洞察\n正面评价关键词:\n{{ $json.asin_content.reviews.filter(r => r.ratingScore >= 4).slice(0, 3).map(r => `- \"${r.reviewTitle}\"`).join('\\n') }}\n\n负面评价警示:\n{{ $json.asin_content.reviews.filter(r => r.ratingScore <= 2).slice(0, 2).map(r => `- ${r.reviewTitle}`).join('\\n') }}\n\n## 优化要求\n\n### 1. 结构要求\n- **前70字符规则**: 必须包含产品类别 + 最强卖点 + 主要用途\n- **总长度**: 控制在120-150字符以内（移动端友好）\n- **自然语言**: 使用可对话的名词短语，避免关键词堆砌\n\n### 2. 名词短语优化（NPO）原则\n- 使用完整的 Feature + Benefit 组合（特征+优势）\n- 每个名词短语应可被Rufus直接引用回答问题\n- 示例思路：将产品特性转化为客户能理解的具体优势\n\n### 3. 优化策略\n- 前70字符测试: 截断后必须仍然完整表达核心价值\n- 前70字符必须包含:\n  1. 产品类别（明确告知这是什么产品）\n  2. 核心差异化卖点（与竞品的主要区别）\n  3. 主要用途或场景（适用于什么场合）\n\n### 4. 必须包含的语义类别\n基于产品特性，自然融入以下元素：\n- **材质类型**: 从产品属性中提取\n- **核心特性**: 从描述中提取的关键卖点\n- **应用场景**: 至少2个具体场景（不要用\"Perfect for everything\"）\n- **规格选项**: 尺寸范围、类型等\n\n### 5. 竞品差异化分析\n基于以上竞品标题，识别：\n- 他们的标题策略（技术特性优先 vs 场景优先）\n- 我们的独特优势（价格、特性、服务等）\n- 可以借鉴的技术性词汇\n\n### 6. 避免的错误\n- ❌ 关键词堆砌：不要罗列大量同义词\n- ❌ 泛化形容词：\"Premium Quality\", \"Best\", \"Perfect\"等无实际信息的词\n- ❌ 品牌名重复（如果已在Brand字段）\n- ❌ 特殊符号：星号、对勾、箭头等（干扰OCR和语义解析）\n- ❌ 全大写单词（除非是公认缩写）\n\n### 7. Rufus AI适配检查\n每个标题版本必须能回答以下类型的问题：\n- \"What makes this different from cheaper options?\"（与低价产品的差异）\n- \"Can I use this for [specific scenario]?\"（特定场景适用性）\n- \"Is this suitable for [specific condition]?\"（特定条件下的适用性）\n- \"What [attributes] are available?\"（可选属性：尺寸/颜色/规格等）\n\n## 输出格式\n\n重要说明：请根据输入内容的语言（英文/中文/其他语言）生成相同语言的优化内容，保持语言一致性。输出时不要使用markdown格式（不要使用加粗、斜体、列表符号等），只输出以下两部分内容。\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n第一部分：标题优化\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n原标题：\n{{ $json.asin_content.title }}\n\n版本A（突出核心差异化卖点）：\n[优化后的标题，将最强产品特性前置到前70字符]\n\n优化亮点和方式：\n[用一段话描述重点，说明如何改进标题结构、增强了哪些语义特征、如何提升Rufus匹配度、与竞品的差异化等]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n版本B（突出应用场景）：\n[优化后的标题，前置具体使用场景，扩大受众覆盖]\n\n优化亮点和方式：\n[用一段话描述重点，说明如何改进标题结构、增强了哪些语义特征、如何提升Rufus匹配度、与竞品的差异化等]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n第二部分：后台搜索词（Search Terms）\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n要求：\n1. 总字节数上限250 bytes（英文1字符约1 byte，中文1字符约3 bytes）\n2. 用空格分隔，不要使用逗号或其他标点符号\n3. 不要重复使用相同词汇\n4. 不要包含品牌名、ASIN、或夸张宣称词汇\n5. 选择标题中未包含但客户可能搜索的相关词汇\n6. 包含产品特性、材质、用途、应用场景的同义词和相关词\n7. 考虑客户的搜索习惯和常用表达方式\n\n生成策略：\n从以下维度提取关键搜索词（标题中未出现的）：\n- 产品类别的同义词和相关词\n- 材质和技术特性的相关术语\n- 应用场景和使用对象\n- 功能特性和性能描述\n- 尺寸、颜色、形状等属性词\n- 目标用户群体相关词\n- 解决的问题或需求相关词\n\n后台搜索词：\n[直接生成符合上述要求的搜索词文本，用空格分隔，确保总字节数不超过250 bytes]\n\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n请开始生成标题优化和后台搜索词。\n",
+        "batching": {}
+      },
+      "id": "9127145b-3402-40d9-9744-682497b2e83d",
+      "name": "Analysis title1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        -8560,
+        26512
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$('Webhook Trigger').first().json.body.user_email}}",
+        "subject": "={{ 'Amazon Product Optimization Report - ' + $('Workflow Configuration').first().json.asin }}",
+        "message": "={{ $json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -7024,
+        26416
+      ],
+      "id": "fb44fae7-6fdf-420c-9124-8c2b3dfadae5",
+      "name": "Send a message",
+      "webhookId": "e595414a-d73d-4697-a452-e650afd31b24",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HyJ0IwzVvMJ3oBFZ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { 'status': 'success', 'message': 'Report generated and sent successfully', 'asin': $('Workflow Configuration').first().json.asin } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3cb4a814-e2ee-421e-816e-1a6876e252ab",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -6784,
+        26432
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "asin",
+              "value": "={{ $json.body.asin }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1ee716f7-17b7-4a2a-ac09-0678d77220af",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -10400,
+        26352
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "amazon-listing-optimizer",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fd2bf47b-203d-4957-ae74-c3119eba8e39",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -10736,
+        26368
+      ],
+      "webhookId": "59f72b7e-e2e4-445c-802b-f95bd907f0c6"
+    },
+    {
+      "parameters": {
+        "content": "## Setup\n\n1. **Amazon Product Asin**: Activate workflow; use the  Product Asin.\n2. **Gemini API**: Set Gemini_API_KEY in n8n env, or edit Google Gemini Model  nodes for Gemini_API_KEY.\n3. **OpenRouter**: Set OPENROUTER_API_KEY edit sonnet 4.0 node. Model: claude-sonnet-4.5. Edit Code to use claude-sonnet-4.5 if you prefer.\n4. **Gmail**: Connect Gmail OAuth2 in the Send node.",
+        "height": 408,
+        "width": 448
+      },
+      "id": "c7bfa7ca-125b-4dd5-927d-e3173b00a573",
+      "name": "Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -10560,
+        25856
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "014dc9f6-68f6-4830-af2b-cb828769f9da",
+      "name": "Google Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -9328,
+        26912
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YbYOx4gIfXjoctgD",
+          "name": "Gemini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each onedata\ndata = _items\ntext = ''\nfor item in data:\n  text = text + item['json'][\"text\"]\n\nai_text = {'text':text}\nreturn ai_text"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -7984,
+        26416
+      ],
+      "id": "db59b429-15d9-4f2b-8779-c29c6d05760d",
+      "name": "Code in Python (Native)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "asin_data": {
+      "main": [
+        [
+          {
+            "node": "compare_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "compare_data": {
+      "main": [
+        [
+          {
+            "node": "Merge ASIN and Compare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " attribute 1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Generate Final Report1": {
+      "main": [
+        [
+          {
+            "node": "Style Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Style Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet 4.": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Style Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code in Python (Native)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A+Content Strategy1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bullet Points1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Analysis title1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge ASIN and Compare Data": {
+      "main": [
+        [
+          {
+            "node": "A+Content Strategy1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bullet Points1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analysis title1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": " attribute 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "asin_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "A+Content Strategy1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Bullet Points1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Analysis title1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": " attribute 1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Final Report1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python (Native)": {
+      "main": [
+        [
+          {
+            "node": "Generate Final Report1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d1aa6280-9d55-4f15-902b-02b3aa042938",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b06d5a0e425b7edf0fc4eb2103e9f0853be2042b394676ea6d772ee182fb75ac"
+  },
+  "id": "ZxsdfrAro019qX5c",
+  "tags": []
+}
